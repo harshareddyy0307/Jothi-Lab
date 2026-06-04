@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../services/api';
+import api, { API_BASE_URL } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { 
   FileSpreadsheet, Search, Filter, Clock, CheckCircle2, 
@@ -250,7 +250,7 @@ const Reports = () => {
                       {rep.status === 'Approved' ? (
                         <div className="inline-flex rounded-lg border border-slate-200 dark:border-navy-800 divide-x divide-slate-200 dark:divide-navy-800 overflow-hidden">
                           <a
-                            href={`http://localhost:5000/api/reports/${rep.id}/pdf?token=${localStorage.getItem('jyothi_token')}`}
+                            href={`${API_BASE_URL}/api/reports/${rep.id}/pdf?token=${localStorage.getItem('jyothi_token')}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-navy-700 hover:bg-slate-50 dark:text-navy-300 dark:hover:bg-navy-850 transition-colors"
@@ -260,7 +260,7 @@ const Reports = () => {
                             <span>With Letterhead</span>
                           </a>
                           <a
-                            href={`http://localhost:5000/api/reports/${rep.id}/pdf?token=${localStorage.getItem('jyothi_token')}&letterhead=false`}
+                            href={`${API_BASE_URL}/api/reports/${rep.id}/pdf?token=${localStorage.getItem('jyothi_token')}&letterhead=false`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-navy-700 hover:bg-slate-50 dark:text-navy-300 dark:hover:bg-navy-850 transition-colors"

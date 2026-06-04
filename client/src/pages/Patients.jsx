@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../services/api';
+import api, { API_BASE_URL } from '../services/api';
 import { 
   Plus, Search, User, Phone, MapPin, Mail, Calendar, 
   ChevronLeft, ChevronRight, X, Eye, Printer, AlertCircle, Clock, CheckCircle,
@@ -559,7 +559,7 @@ const Patients = () => {
                     <p>
                       <strong className="text-navy-500 dark:text-navy-400">Document:</strong>{' '}
                       <a 
-                        href={`http://localhost:5000${selectedPatient.insurance_document_path}`} 
+                        href={`${API_BASE_URL}${selectedPatient.insurance_document_path}`} 
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="text-coral-500 font-semibold hover:underline"
@@ -622,7 +622,7 @@ const Patients = () => {
                               {rep.status === 'Approved' ? (
                                 <div className="flex gap-2">
                                   <a
-                                    href={`http://localhost:5000/api/reports/${rep.id}/pdf?token=${localStorage.getItem('jyothi_token')}`}
+                                    href={`${API_BASE_URL}/api/reports/${rep.id}/pdf?token=${localStorage.getItem('jyothi_token')}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="flex h-8 px-2.5 items-center justify-center gap-1 rounded bg-coral-50 text-coral-500 hover:bg-coral-100 dark:bg-coral-950/15 text-xs font-semibold"
@@ -632,7 +632,7 @@ const Patients = () => {
                                     <span className="hidden sm:inline">With Head</span>
                                   </a>
                                   <a
-                                    href={`http://localhost:5000/api/reports/${rep.id}/pdf?token=${localStorage.getItem('jyothi_token')}&letterhead=false`}
+                                    href={`${API_BASE_URL}/api/reports/${rep.id}/pdf?token=${localStorage.getItem('jyothi_token')}&letterhead=false`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="flex h-8 px-2.5 items-center justify-center gap-1 rounded bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-navy-800 dark:text-navy-300 dark:hover:bg-navy-750 text-xs font-semibold"

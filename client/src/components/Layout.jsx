@@ -3,7 +3,7 @@ import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
 import useBarcodeScanner from '../hooks/useBarcodeScanner';
-import api from '../services/api';
+import api, { API_BASE_URL } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import Barcode from './Barcode';
 import { 
@@ -690,7 +690,7 @@ const Layout = () => {
                               <span className="text-xs text-navy-450 font-semibold">Verify prints:</span>
                               <div className="flex gap-2">
                                 <a
-                                  href={`http://localhost:5000/api/reports/${lookupData.id}/pdf?token=${localStorage.getItem('jyothi_token')}`}
+                                  href={`${API_BASE_URL}/api/reports/${lookupData.id}/pdf?token=${localStorage.getItem('jyothi_token')}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="inline-flex items-center gap-1.5 rounded bg-navy-100 px-3 py-1.5 text-xs font-semibold text-navy-700 hover:bg-navy-200 dark:bg-navy-800 dark:text-navy-300 dark:hover:bg-navy-750"
@@ -699,7 +699,7 @@ const Layout = () => {
                                   <span>Official Letterhead</span>
                                 </a>
                                 <a
-                                  href={`http://localhost:5000/api/reports/${lookupData.id}/pdf?token=${localStorage.getItem('jyothi_token')}&letterhead=false`}
+                                  href={`${API_BASE_URL}/api/reports/${lookupData.id}/pdf?token=${localStorage.getItem('jyothi_token')}&letterhead=false`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="inline-flex items-center gap-1.5 rounded bg-slate-100 px-3 py-1.5 text-xs font-semibold text-navy-700 hover:bg-slate-200 dark:bg-navy-800 dark:text-navy-300 dark:hover:bg-navy-750"

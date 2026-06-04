@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../services/api';
+import api, { API_BASE_URL } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { 
   PenTool, Plus, Trash2, Edit3, X, AlertCircle, 
@@ -95,7 +95,7 @@ const Signatures = () => {
     setDesignation(sig.designation);
     setDepartment(sig.department || 'All');
     setSignatureFile(null);
-    setPreviewUrl(`http://localhost:5000${sig.signature_path}`);
+    setPreviewUrl(`${API_BASE_URL}${sig.signature_path}`);
     setError('');
     setSuccess('');
     setModalOpen(true);
@@ -270,7 +270,7 @@ const Signatures = () => {
                   }}
                 >
                   <img 
-                    src={`http://localhost:5000${sig.signature_path}`} 
+                    src={`${API_BASE_URL}${sig.signature_path}`} 
                     alt={`Signature for ${sig.name}`}
                     className="max-h-full max-w-full object-contain print:mix-blend-multiply"
                   />
