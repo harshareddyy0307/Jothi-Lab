@@ -1,10 +1,29 @@
 import axios from 'axios';
 
+const getBaseURL = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  let url = 'http://localhost:5000/api';
+  if (typeof window !== 'undefined' && window.location) {
+    const { hostname } = window.location;
+    const isIP = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(hostname);
+    const isLocalHost = hostname === 'localhost' || hostname === '127.0.0.1';
+    
+    if ((isIP || hostname.endsWith('.local') || !hostname.includes('.')) && !isLocalHost) {
+      url = `http://${hostname}:5000/api`;
+    }
+  }
+  return url;
+};
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+  baseURL: getBaseURL(),
 });
 
-export const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api$/, '');
+export const API_BASE_URL = getBaseURL().replace(/\/api$/, '');
+
 
 
 // Intercept requests to inject JWT
