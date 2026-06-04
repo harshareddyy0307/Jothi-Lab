@@ -15,7 +15,15 @@ if (dialect === 'postgres') {
     console.error('DATABASE_URL is required when DB_DIALECT is postgres');
     process.exit(1);
   }
-  pool = new Pool({ connectionString });
+  const useSSL = connectionString.includes('supabase') || 
+                  connectionString.includes('neon') || 
+                  connectionString.includes('render.com') ||
+                  connectionString.includes('sslmode=') ||
+                  process.env.PGSSLMODE;
+  pool = new Pool({ 
+    connectionString,
+    ssl: useSSL ? { rejectUnauthorized: false } : false
+  });
   console.log('Database Configured: PostgreSQL');
 } else {
   const dbPath = path.join(__dirname, '../../database.db');
