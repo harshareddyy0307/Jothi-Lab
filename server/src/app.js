@@ -33,7 +33,9 @@ app.use((req, res, next) => {
 const allowedOrigins = [
   process.env.PUBLIC_CLIENT_URL,
   'http://localhost:5173',
-  'http://127.0.5.1:5173'
+  'http://127.0.5.1:5173',
+  'https://mithra-diagnostic-centre-lab.web.app',
+  'https://mithra-diagnostic-centre-lab.firebaseapp.com'
 ].filter(Boolean);
 
 app.use(cors({
