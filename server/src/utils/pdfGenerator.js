@@ -2,6 +2,7 @@ const PDFDocument = require('pdfkit');
 const QRCode = require('qrcode');
 const fs = require('fs');
 const path = require('path');
+const jwt = require('jsonwebtoken');
 
 function generateReportPDF(data) {
   return new Promise(async (resolve, reject) => {
@@ -15,13 +16,22 @@ function generateReportPDF(data) {
     });
 
     try {
-      const { patient, doctor, test, report, bill, settings, approver, letterhead = true, signature } = data;
+      const { patient, doctor, test, report, bill, settings, approver, letterhead = true, signature, baseUrl } = data;
       const yOffset = letterhead ? 0 : 70;
       
       // Generate real QR code buffer encoding the report PDF URL
       let qrBuffer = null;
       try {
-        const reportUrl = `http://localhost:5000/api/reports/${report.id}/pdf`;
+        const JWT_SECRET = process.env.JWT_SECRET || 'jyothi_lab_secret_key_2026';
+        // Generate a secure, non-expiring JWT token specifically for this report
+        const token = jwt.sign({ reportId: report.id, role: 'Patient' }, JWT_SECRET);
+        
+        let resolvedBaseUrl = baseUrl;
+        if (!resolvedBaseUrl) {
+          resolvedBaseUrl = process.env.RENDER_EXTERNAL_URL || process.env.PUBLIC_SERVER_URL || `http://localhost:${process.env.PORT || 5000}`;
+        }
+        
+        const reportUrl = `${resolvedBaseUrl}/api/reports/${report.id}/pdf?token=${token}`;
         qrBuffer = await QRCode.toBuffer(reportUrl, { margin: 1, width: 150 });
       } catch (qrErr) {
         console.error('Failed to generate real QR code, falling back to mock:', qrErr);

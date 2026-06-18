@@ -222,6 +222,11 @@ const reportController = {
         return res.status(404).json({ error: 'Report not found' });
       }
 
+      // If the token is for a Patient, verify it matches the requested report ID
+      if (req.user && req.user.role === 'Patient' && Number(req.user.reportId) !== Number(id)) {
+        return res.status(403).json({ error: 'Unauthorized: You do not have permission to view this report.' });
+      }
+
       const patient = await db.get('SELECT * FROM patients WHERE id = $1', [report.patient_id]);
       const bill = await db.get('SELECT * FROM bills WHERE id = $1', [report.bill_id]);
       const test = await db.get('SELECT * FROM tests WHERE id = $1', [report.test_id]);
@@ -259,6 +264,7 @@ const reportController = {
       }
 
       // Generate PDF
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
       const pdfBuffer = await generateReportPDF({
         patient,
         doctor,
@@ -268,7 +274,8 @@ const reportController = {
         settings,
         approver,
         letterhead,
-        signature
+        signature,
+        baseUrl
       });
 
       res.setHeader('Content-Type', 'application/pdf');
