@@ -14,6 +14,10 @@ const Doctors = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Monthly Referral Summary States
+  const [monthlyReferrals, setMonthlyReferrals] = useState([]);
+  const [monthlyLoading, setMonthlyLoading] = useState(false);
+
   // Modals & Panels
   const [formOpen, setFormOpen] = useState(false);
   const [ledgerOpen, setLedgerOpen] = useState(false);
@@ -43,9 +47,25 @@ const Doctors = () => {
     }
   };
 
+  const fetchMonthlyReferrals = async () => {
+    try {
+      setMonthlyLoading(true);
+      const res = await api.get('/doctors/referrals/monthly');
+      setMonthlyReferrals(res.data);
+    } catch (err) {
+      console.error('Failed to fetch monthly referrals summary:', err);
+    } finally {
+      setMonthlyLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchDoctors();
   }, [search]);
+
+  useEffect(() => {
+    fetchMonthlyReferrals();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -75,6 +95,7 @@ const Doctors = () => {
       setFormOpen(false);
 
       fetchDoctors();
+      fetchMonthlyReferrals();
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to save doctor details.');
     }
@@ -95,6 +116,7 @@ const Doctors = () => {
     try {
       await api.delete(`/doctors/${id}`);
       fetchDoctors();
+      fetchMonthlyReferrals();
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to delete doctor.');
     }
@@ -141,16 +163,61 @@ const Doctors = () => {
         </div>
       )}
 
-      {/* Search */}
-      <div className="flex items-center gap-3 max-w-md rounded-lg border border-slate-200 bg-white px-3 py-2 dark:border-navy-850 dark:bg-navy-900">
-        <Search size={18} className="text-navy-400" />
-        <input
-          type="text"
-          placeholder="Search by Name, Spec, Phone..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full bg-transparent text-sm text-navy-900 focus:outline-none dark:text-white"
-        />
+      {/* Search & Monthly Summary Container */}
+      <div className="grid gap-6 md:grid-cols-3">
+        {/* Search */}
+        <div className="md:col-span-1 h-fit flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2.5 dark:border-navy-850 dark:bg-navy-900">
+          <Search size={18} className="text-navy-400" />
+          <input
+            type="text"
+            placeholder="Search by Name, Spec, Phone..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full bg-transparent text-sm text-navy-900 focus:outline-none dark:text-white"
+          />
+        </div>
+
+        {/* Monthly Referral Payouts Summary */}
+        <div className="md:col-span-2 rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-navy-850 dark:bg-navy-900">
+          <h2 className="text-sm font-bold uppercase tracking-wider text-coral-500 mb-3 flex items-center gap-1.5">
+            <FileSpreadsheet size={16} />
+            <span>Monthly Referral & Commission Summary (All Doctors)</span>
+          </h2>
+          {monthlyLoading ? (
+            <div className="flex py-6 justify-center">
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-coral-500 border-t-transparent"></div>
+            </div>
+          ) : monthlyReferrals.length > 0 ? (
+            <div className="overflow-x-auto max-h-[160px] overflow-y-auto pr-1">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-slate-100 text-[10px] font-bold text-navy-500 uppercase dark:border-navy-800 dark:text-navy-450 pb-2">
+                    <th className="py-2">Month</th>
+                    <th className="py-2 text-right">Total Referred Billing</th>
+                    <th className="py-2 text-right">Total Commission Payout</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50 dark:divide-navy-850 text-navy-800 dark:text-navy-200">
+                  {monthlyReferrals.map((m) => (
+                    <tr key={m.month} className="hover:bg-slate-55/30 dark:hover:bg-navy-800/10">
+                      <td className="py-2.5 font-bold text-navy-900 dark:text-white">
+                        {new Date(m.month + '-02').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                      </td>
+                      <td className="py-2.5 text-right font-semibold">
+                        ₹{m.totalReferredAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </td>
+                      <td className="py-2.5 text-right font-extrabold text-coral-500">
+                        ₹{m.totalCommission.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-xs text-navy-400 py-4 text-center">No doctor referral records found.</p>
+          )}
+        </div>
       </div>
 
       {/* Grid List */}
@@ -315,11 +382,11 @@ const Doctors = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="rounded-xl bg-slate-50 p-4 dark:bg-navy-950">
                     <p className="text-xs font-semibold text-navy-400 uppercase tracking-wider">Total Referred Billing</p>
-                    <h4 className="text-lg font-extrabold text-navy-800 dark:text-white mt-1">₹{ledgerData.totalReferredAmount.toFixed(2)}</h4>
+                    <h4 className="text-lg font-extrabold text-navy-800 dark:text-white mt-1">₹{parseFloat(ledgerData.totalReferredAmount || 0).toFixed(2)}</h4>
                   </div>
                   <div className="rounded-xl bg-coral-50/50 p-4 dark:bg-coral-950/10">
                     <p className="text-xs font-semibold text-coral-550 uppercase tracking-wider">Commission Earned</p>
-                    <h4 className="text-lg font-extrabold text-coral-500 dark:text-coral-450 mt-1">₹{ledgerData.totalCommissionEarned.toFixed(2)}</h4>
+                    <h4 className="text-lg font-extrabold text-coral-500 dark:text-coral-450 mt-1">₹{parseFloat(ledgerData.totalCommissionEarned || 0).toFixed(2)}</h4>
                   </div>
                 </div>
 
@@ -339,8 +406,8 @@ const Doctors = () => {
                               <p className="text-xs text-navy-450 dark:text-navy-500">{bill.patient_name} • {new Date(bill.created_at).toLocaleDateString()}</p>
                             </div>
                             <div className="text-right">
-                              <p className="font-bold">₹{billNet.toFixed(2)}</p>
-                              <p className="text-xs text-coral-500 font-semibold">Comm: ₹{billComm.toFixed(2)}</p>
+                              <p className="font-bold">₹{parseFloat(billNet || 0).toFixed(2)}</p>
+                              <p className="text-xs text-coral-500 font-semibold">Comm: ₹{parseFloat(billComm || 0).toFixed(2)}</p>
                             </div>
                           </div>
                         );

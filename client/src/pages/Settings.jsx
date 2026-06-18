@@ -10,7 +10,7 @@ const Settings = () => {
   
   // Settings values
   const [receiptHeader, setReceiptHeader] = useState({
-    labName: 'Jyothi Lab',
+    labName: 'Mithra Diagnostic Centre',
     tagline: 'Precision Diagnostics, Care & Trust',
     address: '',
     phone: '',
@@ -29,7 +29,7 @@ const Settings = () => {
     port: '2525',
     user: '',
     pass: '',
-    from: 'no-reply@jyothilab.com'
+    from: 'no-reply@mithradiagnosticcentre.com'
   });
 
   const [whatsappSettings, setWhatsappSettings] = useState({

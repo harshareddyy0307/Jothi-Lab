@@ -18,8 +18,10 @@ function interpolateTemplate(body, vars) {
     .replace(/\{\{test_name\}\}/g, vars.test_name || '')
     .replace(/\{\{bill_number\}\}/g, vars.bill_number || '')
     .replace(/\{\{report_date\}\}/g, vars.report_date || '')
-    .replace(/\{\{lab_name\}\}/g, vars.lab_name || 'Jyothi Diagnostic Centre')
-    .replace(/\{\{phone\}\}/g, vars.phone || '9856628943');
+    .replace(/\{\{lab_name\}\}/g, vars.lab_name || 'Mithra Diagnostic Centre')
+    .replace(/\{\{phone\}\}/g, vars.phone || '9856628943')
+    .replace(/\{\{address\}\}/g, vars.address || '')
+    .replace(/\{\{email\}\}/g, vars.email || '');
 }
 
 // Helper: Format phone for WhatsApp (India default: prepend 91 if not already international)
@@ -179,8 +181,14 @@ const whatsappController = {
         template = await db.get('SELECT * FROM wa_templates WHERE is_default = 1 LIMIT 1');
       }
       if (!template) {
-        template = { body: 'Dear {{patient_name}}, your lab report {{test_name}} (Bill: {{bill_number}}) from Jyothi Lab is ready. Please find it attached.' };
+        template = { body: 'Dear {{patient_name}}, your lab report {{test_name}} (Bill: {{bill_number}}) from {{lab_name}} is ready. Please find it attached.' };
       }
+
+      // Fetch settings
+      const settingsRows = await db.query('SELECT * FROM settings');
+      const settings = {};
+      settingsRows.forEach((r) => { settings[r.key] = r.value; });
+      const receiptHeader = settings.receipt_header ? JSON.parse(settings.receipt_header) : {};
 
       // Build message
       const reportDate = report.approved_at
@@ -191,20 +199,33 @@ const whatsappController = {
         patient_name: report.patient_name,
         test_name: report.test_name,
         bill_number: report.bill_number,
-        report_date: reportDate
+        report_date: reportDate,
+        lab_name: receiptHeader.labName,
+        phone: receiptHeader.phone,
+        address: receiptHeader.address,
+        email: receiptHeader.email
       });
 
       const phone = formatPhone(report.patient_phone);
       const pdfUrl = buildPdfUrl(reportId, userToken);
 
       // Insert a pending log entry first
-      const logInsert = await db.run(
-        `INSERT INTO whatsapp_logs (report_id, patient_id, patient_name, patient_phone, bill_number, test_name, template_id, message_body, status)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'Pending')`,
-        [reportId, report.patient_id, report.patient_name, phone, report.bill_number, report.test_name, template?.id || null, messageBody]
-      );
-
-      const logId = logInsert.lastID;
+      let logId;
+      if (db.dialect === 'postgres') {
+        const logInsert = await db.get(
+          `INSERT INTO whatsapp_logs (report_id, patient_id, patient_name, patient_phone, bill_number, test_name, template_id, message_body, status)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'Pending') RETURNING id`,
+          [reportId, report.patient_id, report.patient_name, phone, report.bill_number, report.test_name, template?.id || null, messageBody]
+        );
+        logId = logInsert.id;
+      } else {
+        const logInsert = await db.run(
+          `INSERT INTO whatsapp_logs (report_id, patient_id, patient_name, patient_phone, bill_number, test_name, template_id, message_body, status)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'Pending')`,
+          [reportId, report.patient_id, report.patient_name, phone, report.bill_number, report.test_name, template?.id || null, messageBody]
+        );
+        logId = logInsert.lastID;
+      }
 
       // Send via WhatsApp
       const result = await notificationService.sendWhatsApp(phone, messageBody, pdfUrl);
@@ -230,7 +251,10 @@ const whatsappController = {
         logId,
         messageId: result.messageId,
         provider: result.provider,
-        error: result.error || null
+        error: result.error || null,
+        phone,
+        messageBody,
+        pdfUrl
       });
     } catch (err) {
       console.error('[WhatsApp] sendReport error:', err);
@@ -256,6 +280,12 @@ const whatsappController = {
         template = await db.get('SELECT * FROM wa_templates WHERE is_default = 1 LIMIT 1');
       }
 
+      // Fetch settings
+      const settingsRows = await db.query('SELECT * FROM settings');
+      const settings = {};
+      settingsRows.forEach((r) => { settings[r.key] = r.value; });
+      const receiptHeader = settings.receipt_header ? JSON.parse(settings.receipt_header) : {};
+
       const results = [];
 
       for (const reportId of report_ids) {
@@ -279,23 +309,36 @@ const whatsappController = {
             ? new Date(report.approved_at).toLocaleDateString('en-IN')
             : new Date().toLocaleDateString('en-IN');
 
-          const messageBody = interpolateTemplate(template?.body || 'Dear {{patient_name}}, your report {{test_name}} ({{bill_number}}) from Jyothi Lab is ready.', {
+          const messageBody = interpolateTemplate(template?.body || 'Dear {{patient_name}}, your report {{test_name}} ({{bill_number}}) from {{lab_name}} is ready.', {
             patient_name: report.patient_name,
             test_name: report.test_name,
             bill_number: report.bill_number,
-            report_date: reportDate
+            report_date: reportDate,
+            lab_name: receiptHeader.labName,
+            phone: receiptHeader.phone,
+            address: receiptHeader.address,
+            email: receiptHeader.email
           });
 
           const phone = formatPhone(report.patient_phone);
           const pdfUrl = buildPdfUrl(reportId, userToken);
 
-          const logInsert = await db.run(
-            `INSERT INTO whatsapp_logs (report_id, patient_id, patient_name, patient_phone, bill_number, test_name, template_id, message_body, status)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'Pending')`,
-            [reportId, report.patient_id, report.patient_name, phone, report.bill_number, report.test_name, template?.id || null, messageBody]
-          );
-
-          const logId = logInsert.lastID;
+          let logId;
+          if (db.dialect === 'postgres') {
+            const logInsert = await db.get(
+              `INSERT INTO whatsapp_logs (report_id, patient_id, patient_name, patient_phone, bill_number, test_name, template_id, message_body, status)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'Pending') RETURNING id`,
+              [reportId, report.patient_id, report.patient_name, phone, report.bill_number, report.test_name, template?.id || null, messageBody]
+            );
+            logId = logInsert.id;
+          } else {
+            const logInsert = await db.run(
+              `INSERT INTO whatsapp_logs (report_id, patient_id, patient_name, patient_phone, bill_number, test_name, template_id, message_body, status)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'Pending')`,
+              [reportId, report.patient_id, report.patient_name, phone, report.bill_number, report.test_name, template?.id || null, messageBody]
+            );
+            logId = logInsert.lastID;
+          }
           const result = await notificationService.sendWhatsApp(phone, messageBody, pdfUrl);
 
           const newStatus = result.success ? (result.provider === 'SimulatedWhatsApp' ? 'Sent (Simulated)' : 'Sent') : 'Failed';
@@ -350,7 +393,14 @@ const whatsappController = {
         [newStatus, result.messageId || null, result.error || null, result.success ? now : null, logId]
       );
 
-      return res.json({ success: result.success, status: newStatus, retryCount: log.retry_count + 1 });
+      return res.json({ 
+        success: result.success, 
+        status: newStatus, 
+        retryCount: log.retry_count + 1,
+        phone: log.patient_phone,
+        messageBody: log.message_body,
+        pdfUrl
+      });
     } catch (err) {
       console.error('[WhatsApp] retryDelivery error:', err);
       return res.status(500).json({ error: 'Internal Server Error' });

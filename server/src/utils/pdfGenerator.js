@@ -28,11 +28,11 @@ function generateReportPDF(data) {
       }
       
       const receiptHeader = settings.receipt_header ? JSON.parse(settings.receipt_header) : {
-        labName: 'JYOTHILAB',
+        labName: 'MITHRA DIAGNOSTIC CENTRE',
         tagline: 'Diagnostic Centre',
         address: 'Bellary Road, Near Gururagavendra Nagar, Varma Complex, Kurnool - 518 003',
         phone: '9856628943',
-        email: 'ullijyothi161@gmail.com',
+        email: 'info@mithradiagnosticcentre.com',
         gstin: '36AAAAA1111A1Z1'
       };
 
@@ -58,13 +58,13 @@ function generateReportPDF(data) {
         doc.moveTo(cx, cy - 2).lineTo(cx - 2, cy + 2).stroke();
 
         // 2. Logo Text
-        doc.fillColor('#f26522').font('Helvetica-Bold').fontSize(20).text('JYOTHILAB', 110, 42);
-        doc.fillColor('#1e293b').font('Helvetica-Bold').fontSize(14).text('Diagnostic Centre', 110, 64);
+        doc.fillColor('#f26522').font('Helvetica-Bold').fontSize(20).text((receiptHeader.labName || 'MITHRA DIAGNOSTIC CENTRE').toUpperCase(), 110, 42);
+        doc.fillColor('#1e293b').font('Helvetica-Bold').fontSize(12).text(receiptHeader.tagline || 'Diagnostic Centre', 110, 64);
 
         // 3. Contact Details
         doc.font('Helvetica').fontSize(9.5).fillColor('#334155');
         doc.text(`Cell : ${receiptHeader.phone || '9856628943'}`, doc.page.width - 240, 43, { align: 'right', width: 200 });
-        doc.text(`E-mail : ${receiptHeader.email || 'ullijyothi161@gmail.com'}`, doc.page.width - 240, 58, { align: 'right', width: 200 });
+        doc.text(`E-mail : ${receiptHeader.email || 'info@mithradiagnosticcentre.com'}`, doc.page.width - 240, 58, { align: 'right', width: 200 });
 
         // 4. "LAB REPORT" Header Badge
         const badgeY = 80;
@@ -126,19 +126,9 @@ function generateReportPDF(data) {
       // 8. Test Name Title (All Caps)
       posY += 7;
       doc.font('Helvetica-Bold').fontSize(11.5).fillColor('#000000').text(test.name.toUpperCase(), 45, posY, { align: 'center' });
-      posY += 15;
+      posY += 18;
 
-      // 8b. Test Description / Notes (if present)
-      if (test.description && test.description.trim() !== '') {
-        posY += 2;
-        doc.font('Helvetica-Oblique').fontSize(8.5).fillColor('#475569');
-        doc.text(`Note: ${test.description}`, 55, posY, { align: 'center', width: doc.page.width - 110 });
-        const descHeight = doc.heightOfString(`Note: ${test.description}`, { width: doc.page.width - 110 });
-        posY += descHeight;
-      }
-
-      // 9. Horizontal Line under test name/description
-      posY += 6;
+      // 9. Horizontal Line under test name
       doc.strokeColor('#000000').lineWidth(1.2).moveTo(45, posY).lineTo(doc.page.width - 45, posY).stroke();
 
       // 10. Table Columns Headers
@@ -208,6 +198,22 @@ function generateReportPDF(data) {
       // 12. End of report line
       doc.strokeColor('#000000').lineWidth(0.8).moveTo(45, currentY).lineTo(doc.page.width - 45, currentY).stroke();
       
+      currentY += 8;
+      const testNotesText = test.description && test.description.trim() !== ''
+        ? test.description
+        : getRandomNoteForTest(test.code, test.name);
+
+      doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#1e293b').text('Clinical Interpretation & Notes:', 45, currentY);
+      currentY += 12;
+      doc.font('Helvetica-Oblique').fontSize(8).fillColor('#475569');
+      doc.text(testNotesText, 45, currentY, { align: 'left', width: doc.page.width - 90 });
+      const noteHeight = doc.heightOfString(testNotesText, { width: doc.page.width - 90 });
+      currentY += noteHeight + 8;
+
+      // Draw another line under note
+      doc.strokeColor('#e2e8f0').lineWidth(0.5).moveTo(45, currentY).lineTo(doc.page.width - 45, currentY).stroke();
+      currentY += 4;
+
       // Centered "**END OF REPORT**"
       doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#000000').text('**END OF REPORT**', 45, currentY + 6, { align: 'center' });
 
@@ -270,9 +276,15 @@ function generateReportPDF(data) {
         // Footer lines & dynamic page counts
         doc.strokeColor('#cbd5e1').lineWidth(0.5).moveTo(45, doc.page.height - 45).lineTo(doc.page.width - 45, doc.page.height - 45).stroke();
         
+        // Temporarily disable bottom margin to prevent automatic page wrapping when writing footer
+        const oldMargin = doc.page.margins.bottom;
+        doc.page.margins.bottom = 0;
+
         doc.font('Helvetica').fontSize(8.5).fillColor('#475569');
         doc.text(`Page ${i + 1} of ${range.count}`, 45, doc.page.height - 36);
         doc.text(footerAddress, 45, doc.page.height - 36, { align: 'center', width: doc.page.width - 90 });
+
+        doc.page.margins.bottom = oldMargin;
       }
 
       doc.end();
@@ -315,6 +327,54 @@ function drawMockQRCode(doc, x, y, size) {
   doc.rect(x + size - pSize - 3, y + size - 10, 2, 7).fill();
   doc.rect(x + pSize + 1, y + size - 7, 9, 2).fill();
   doc.rect(x + pSize + 13, y + size - 5, 5, 2).fill();
+}
+
+function getRandomNoteForTest(testCode, testName) {
+  const notes = {
+    'CBC': [
+      "Clinical interpretation should be correlated with clinical findings. Mild fluctuations in WBC/Platelets can be transient.",
+      "Peripheral blood smear examination is recommended if abnormal cells are detected or if cell counts are significantly out of range.",
+      "Hemoglobin levels should be evaluated in context of patient's hydration state, age, gender, and clinical history."
+    ],
+    'LFT': [
+      "Elevated transaminases (SGOT/SGPT) may indicate hepatocellular injury and should be correlated with clinical symptoms.",
+      "Bilirubin fluctuations should be evaluated in conjunction with alkaline phosphatase levels and hepatic imaging if clinically indicated.",
+      "Liver function test results can be affected by recent medications, alcohol consumption, or intensive physical exercise."
+    ],
+    'FBS': [
+      "Fasting Blood Sugar level of 100-125 mg/dL indicates Impaired Fasting Glucose (Pre-diabetes). Correlation with HbA1c is advised.",
+      "Diagnosis of Diabetes Mellitus should not be based on a single screening result. Confirm with a repeat test on a subsequent day.",
+      "Patient should maintain a minimum of 8-12 hours of overnight fast prior to sample collection for accurate results."
+    ],
+    'VITAMIN_D': [
+      "Vitamin D levels below 20 ng/mL are considered deficient. Vitamin D supplementation should be done under medical supervision.",
+      "Vitamin D levels between 20-30 ng/mL represent insufficiency. Adequate sunlight exposure and dietary adjustments are recommended.",
+      "Toxicity is rare but can occur with levels exceeding 100 ng/mL, usually associated with high-dose supplementation."
+    ]
+  };
+
+  const defaultNotes = [
+    "Please correlate clinically with patient history. If results are critical, repeat testing or alternative diagnostic procedures are recommended.",
+    "Results can be affected by physiological variations, dietary habits, or ongoing medication. Kindly consult your referring physician.",
+    "This test was performed using automated methodologies. Transient variations in values should be monitored with sequential reports."
+  ];
+
+  const code = (testCode || '').toUpperCase();
+  const name = (testName || '').toUpperCase();
+  let selectedNotes = defaultNotes;
+  
+  if (code.includes('CBC') || name.includes('BLOOD COUNT')) {
+    selectedNotes = notes['CBC'];
+  } else if (code.includes('LFT') || name.includes('LIVER')) {
+    selectedNotes = notes['LFT'];
+  } else if (code.includes('FBS') || name.includes('FASTING SUGAR') || name.includes('GLUCOSE')) {
+    selectedNotes = notes['FBS'];
+  } else if (code.includes('VITD') || name.includes('VITAMIN-D') || name.includes('VITAMIN D')) {
+    selectedNotes = notes['VITAMIN_D'];
+  }
+
+  const randomIndex = Math.floor(Math.random() * selectedNotes.length);
+  return selectedNotes[randomIndex];
 }
 
 module.exports = generateReportPDF;

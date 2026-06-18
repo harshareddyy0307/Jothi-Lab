@@ -249,35 +249,41 @@ async function seedDefaultWhatsAppTemplates() {
     {
       name: 'Standard Report Ready',
       description: 'Default template for report delivery notification',
-      body: `🔬 *Jyothi Lab — Report Ready*\n\nDear {{patient_name}},\n\nYour lab report for *{{test_name}}* is now ready and has been approved by our pathologist.\n\n📋 *Bill Number:* {{bill_number}}\n📅 *Report Date:* {{report_date}}\n\nPlease find your report attached to this message.\n\n_For queries, contact us at 9856628943_\n\n*Jyothi Diagnostic Centre*\nBellary Road, Kurnool`,
+      body: `🔬 *{{lab_name}} — Report Ready*\n\nDear {{patient_name}},\n\nYour lab report for *{{test_name}}* is now ready and has been approved by our pathologist.\n\n📋 *Bill Number:* {{bill_number}}\n📅 *Report Date:* {{report_date}}\n\nPlease find your report attached to this message.\n\n_For queries, contact us at {{phone}}_\n\n*{{lab_name}}*\n{{address}}`,
       is_default: 1
     },
     {
       name: 'Short Notification',
       description: 'Brief report delivery message',
-      body: `Hello {{patient_name}}, your *{{test_name}}* report (Bill: {{bill_number}}) from Jyothi Lab is ready. Report attached. 📄\n\nQueries: 9856628943`,
+      body: `Hello {{patient_name}}, your *{{test_name}}* report (Bill: {{bill_number}}) from {{lab_name}} is ready. Report attached. 📄\n\nQueries: {{phone}}`,
       is_default: 0
     },
     {
       name: 'Hindi / Telugu Bilingual',
       description: 'Bilingual report notification for local patients',
-      body: `🔬 *Jyothi Lab — రిపోర్ట్ సిద్ధంగా ఉంది*\n\nప్రియమైన {{patient_name}} గారు,\n\nమీ *{{test_name}}* పరీక్ష నివేదిక సిద్ధంగా ఉంది.\nబిల్ నంబర్: {{bill_number}}\n\nరిపోర్ట్ ఈ సందేశానికి జతచేయబడింది.\n\nSampark: 9856628943\n*Jyothi Diagnostic Centre, Kurnool*`,
+      body: `🔬 *{{lab_name}} — రిపోర్ట్ సిద్ధంగా ఉంది*\n\nప్రియమైన {{patient_name}} గారు,\n\nమీ *{{test_name}}* పరీక్ష నివేదిక సిద్ధంగా ఉంది.\nబిల్ నంబర్: {{bill_number}}\n\nరిపోర్ట్ ఈ సందేశానికి జతచేయబడింది.\n\nSampark: {{phone}}\n*{{lab_name}}, {{address}}*`,
       is_default: 0
     }
   ];
 
   for (const tpl of defaultTemplates) {
     try {
-      const existing = await db.get('SELECT id FROM wa_templates WHERE name = $1', [tpl.name]);
+      const existing = await db.get('SELECT id, body FROM wa_templates WHERE name = $1', [tpl.name]);
       if (!existing) {
         await db.run(
           'INSERT INTO wa_templates (name, description, body, is_default) VALUES ($1, $2, $3, $4)',
           [tpl.name, tpl.description, tpl.body, tpl.is_default]
         );
         console.log(`Seeded WhatsApp template: ${tpl.name}`);
+      } else if (existing.body.includes('Jyothi') || existing.body.includes('9856628943')) {
+        await db.run(
+          'UPDATE wa_templates SET body = $1, description = $2 WHERE id = $3',
+          [tpl.body, tpl.description, existing.id]
+        );
+        console.log(`Updated WhatsApp template to use dynamic placeholders: ${tpl.name}`);
       }
     } catch (err) {
-      console.error(`Failed to seed template ${tpl.name}:`, err.message);
+      console.error(`Failed to seed/update template ${tpl.name}:`, err.message);
     }
   }
 }

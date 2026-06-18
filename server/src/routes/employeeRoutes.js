@@ -13,5 +13,6 @@ router.get('/:id', employeeController.getById);
 router.post('/', employeeController.create);
 router.put('/:id', employeeController.update);
 router.delete('/:id', employeeController.delete);
+router.post('/:id/toggle-active', employeeController.toggleActive);
 
 module.exports = router;

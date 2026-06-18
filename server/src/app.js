@@ -20,8 +20,32 @@ const whatsappRoutes = require('./routes/whatsappRoutes');
 
 const app = express();
 
+// Security Headers
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
+
 // Middlewares
-app.use(cors());
+const allowedOrigins = [
+  process.env.PUBLIC_CLIENT_URL,
+  'http://localhost:5173',
+  'http://127.0.5.1:5173'
+].filter(Boolean);
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
@@ -149,7 +173,15 @@ app.get('/api/dashboard/stats', authMiddleware, async (req, res) => {
 
 // Default API Route
 app.get('/', (req, res) => {
-  res.json({ message: 'Jyothi Lab Management System API is running.' });
+  res.json({ message: 'Mithra Diagnostic Centre Management System API is running.' });
+});
+
+// Global Error Handler Middleware
+app.use((err, req, res, next) => {
+  console.error(`[Error Handler] ${err.stack || err.message || err}`);
+  const status = err.status || 500;
+  const message = process.env.NODE_ENV === 'production' ? 'Internal Server Error' : err.message;
+  res.status(status).json({ error: message });
 });
 
 module.exports = app;

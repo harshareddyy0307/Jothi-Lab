@@ -132,14 +132,14 @@ const employeeController = {
     }
   },
 
-  // Delete/Suspend staff member (Admin only)
+  // Delete staff member permanently (Admin only)
   delete: async (req, res) => {
     try {
       const { id } = req.params;
       
       // Prevent deleting self
       if (parseInt(id) === req.user.id) {
-        return res.status(400).json({ error: 'You cannot delete or suspend your own administrator account.' });
+        return res.status(400).json({ error: 'You cannot delete your own administrator account.' });
       }
 
       const user = await db.get('SELECT name FROM users WHERE id = $1', [id]);
@@ -147,21 +147,55 @@ const employeeController = {
         return res.status(404).json({ error: 'Staff member not found.' });
       }
 
-      // Check for audit references, cascade is blocked or restricted safely.
-      // Suspend/Deactivate is a safer corporate policy.
-      await db.run(
-        `UPDATE users SET is_active = $1 WHERE id = $2`,
-        [db.dialect === 'postgres' ? false : 0, id]
-      );
+      await db.run('DELETE FROM users WHERE id = $1', [id]);
 
       await auditLog(
         req.user.id,
-        'Staff Suspended',
-        `Suspended account for staff member: ${user.name} (ID: ${id})`,
+        'Staff Deleted',
+        `Permanently deleted staff member: ${user.name} (ID: ${id})`,
         req.ip
       );
 
-      return res.json({ message: 'Staff member account deactivated successfully.' });
+      return res.json({ message: 'Staff member deleted permanently.' });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+  },
+
+  // Toggle staff member active status (Admin only)
+  toggleActive: async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      // Prevent toggling self
+      if (parseInt(id) === req.user.id) {
+        return res.status(400).json({ error: 'You cannot suspend or deactivate your own administrator account.' });
+      }
+
+      const user = await db.get('SELECT name, is_active FROM users WHERE id = $1', [id]);
+      if (!user) {
+        return res.status(404).json({ error: 'Staff member not found.' });
+      }
+
+      const currentStatus = db.dialect === 'postgres' ? user.is_active : user.is_active === 1;
+      const newStatus = !currentStatus;
+      const dbVal = db.dialect === 'postgres' ? newStatus : (newStatus ? 1 : 0);
+
+      await db.run(
+        `UPDATE users SET is_active = $1 WHERE id = $2`,
+        [dbVal, id]
+      );
+
+      const action = newStatus ? 'Activated' : 'Suspended';
+      await auditLog(
+        req.user.id,
+        `Staff ${action}`,
+        `${action} account for staff member: ${user.name} (ID: ${id})`,
+        req.ip
+      );
+
+      return res.json({ message: `Staff member account ${action.toLowerCase()} successfully.` });
     } catch (err) {
       console.error(err);
       return res.status(500).json({ error: 'Internal Server Error' });

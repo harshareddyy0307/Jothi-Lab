@@ -39,8 +39,27 @@ const Billing = () => {
   const [error, setError] = useState('');
   const [receiptBill, setReceiptBill] = useState(null); // holds generated bill for preview
   const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [receiptHeader, setReceiptHeader] = useState({
+    labName: 'Mithra Diagnostic Centre',
+    tagline: 'Precision Diagnostics, Care & Trust',
+    address: '12-34 Main Road, Opp Metro, Hyderabad',
+    phone: '+91 98765 43210',
+    email: 'info@mithradiagnosticcentre.com',
+    gstin: '36AAAAA1111A1Z1'
+  });
 
   // Fetch catalogs
+  const fetchSettings = async () => {
+    try {
+      const res = await api.get('/settings');
+      if (res.data && res.data.receipt_header) {
+        setReceiptHeader(res.data.receipt_header);
+      }
+    } catch (err) {
+      console.error('Failed to fetch receipt settings:', err);
+    }
+  };
+
   const fetchDoctors = async () => {
     try {
       const res = await api.get('/doctors');
@@ -91,6 +110,7 @@ const Billing = () => {
   useEffect(() => {
     fetchDoctors();
     fetchTests();
+    fetchSettings();
   }, []);
 
   // Cart operations
@@ -582,10 +602,10 @@ const Billing = () => {
             {/* Print Area */}
             <div id="receipt-print-area" className="py-4 font-mono text-xs text-navy-850 dark:text-white space-y-4">
               <div className="text-center space-y-1 pb-4 border-b border-dashed border-slate-300">
-                <h3 className="text-lg font-extrabold">JYOTHI DIAGNOSTIC LAB</h3>
-                <p className="text-[10px]">Precision Diagnostics, Care & Trust</p>
-                <p className="text-[9px]">12-34 Main Road, Opp Metro, Hyderabad</p>
-                <p className="text-[9px]">Phone: +91 98765 43210 | GSTIN: 36AAAAA1111A1Z1</p>
+                <h3 className="text-lg font-extrabold">{(receiptHeader.labName || 'MITHRA DIAGNOSTIC CENTRE').toUpperCase()}</h3>
+                <p className="text-[10px]">{receiptHeader.tagline || 'Precision Diagnostics, Care & Trust'}</p>
+                <p className="text-[9px]">{receiptHeader.address || '12-34 Main Road, Opp Metro, Hyderabad'}</p>
+                <p className="text-[9px]">Phone: {receiptHeader.phone || '+91 98765 43210'} | GSTIN: {receiptHeader.gstin || '36AAAAA1111A1Z1'}</p>
               </div>
 
               {/* Patient Meta info */}
@@ -630,8 +650,8 @@ const Billing = () => {
               </div>
 
               <div className="text-center text-[10px] pt-2 text-slate-500">
-                <p>Thank you for choosing Jyothi Lab.</p>
-                <p>Access your reports online at www.jyothilab.com/reports</p>
+                <p>Thank you for choosing {receiptHeader.labName || 'Mithra Diagnostic Centre'}.</p>
+                <p>Access your reports online at www.{(receiptHeader.labName || 'mithradiagnosticcentre').toLowerCase().replace(/[^a-z0-9]/g, '')}.com/reports</p>
               </div>
             </div>
 

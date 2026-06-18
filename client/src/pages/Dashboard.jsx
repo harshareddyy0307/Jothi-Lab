@@ -9,13 +9,23 @@ const Dashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [labName, setLabName] = useState('Mithra Diagnostic Centre');
 
   const fetchStats = async () => {
     try {
       setLoading(true);
       setError('');
-      const response = await api.get('/dashboard/stats');
-      setStats(response.data);
+      const [statsRes, settingsRes] = await Promise.all([
+        api.get('/dashboard/stats'),
+        api.get('/settings').catch(err => {
+          console.error('Failed to fetch settings:', err);
+          return { data: {} };
+        })
+      ]);
+      setStats(statsRes.data);
+      if (settingsRes.data && settingsRes.data.receipt_header && settingsRes.data.receipt_header.labName) {
+        setLabName(settingsRes.data.receipt_header.labName);
+      }
     } catch (err) {
       console.error(err);
       setError('Failed to fetch dashboard statistics. Is the backend online?');
@@ -80,16 +90,16 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Top Banner */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-navy-900 dark:text-white">Jyothi Lab Analytics</h1>
-          <p className="text-sm text-navy-500 dark:text-navy-450">Real-time revenue, patient records, and workflow indicators.</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-navy-900 dark:text-white">{labName} Analytics</h1>
+          <p className="text-xs sm:text-sm text-navy-500 dark:text-navy-450 mt-0.5">Real-time revenue, patient records, and workflow indicators.</p>
         </div>
         <button
           onClick={fetchStats}
-          className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-50 dark:border-navy-800 dark:bg-navy-900 dark:hover:bg-navy-800"
+          className="self-start sm:self-auto flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-50 dark:border-navy-800 dark:bg-navy-900 dark:hover:bg-navy-800 transition-colors"
         >
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           <span>Refresh</span>
@@ -97,105 +107,111 @@ const Dashboard = () => {
       </div>
 
       {/* KPI Cards Grid */}
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-4">
         {/* Today's Revenue */}
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-navy-850 dark:bg-navy-900">
+        <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm dark:border-navy-850 dark:bg-navy-900 transition-all hover:shadow-md">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-navy-500 dark:text-navy-400">Today's Revenue</span>
-            <div className="rounded-lg bg-emerald-50 p-2 text-emerald-500 dark:bg-emerald-950/20 dark:text-emerald-450">
-              <IndianRupee size={20} />
+            <span className="text-xs sm:text-sm font-medium text-navy-500 dark:text-navy-400">Today's Revenue</span>
+            <div className="rounded-lg bg-emerald-50 p-1.5 sm:p-2 text-emerald-500 dark:bg-emerald-950/20 dark:text-emerald-450">
+              <IndianRupee size={16} className="sm:hidden" />
+              <IndianRupee size={20} className="hidden sm:block" />
             </div>
           </div>
-          <div className="mt-4">
-            <h3 className="text-2xl font-bold text-navy-900 dark:text-white">₹{todayRevenue?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h3>
-            <p className="mt-1 text-xs text-emerald-500">Collected today</p>
+          <div className="mt-3 sm:mt-4">
+            <h3 className="text-lg sm:text-2xl font-bold text-navy-900 dark:text-white">₹{todayRevenue?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h3>
+            <p className="mt-1 text-[10px] sm:text-xs text-emerald-500">Collected today</p>
           </div>
         </div>
 
         {/* Monthly Revenue */}
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-navy-850 dark:bg-navy-900">
+        <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm dark:border-navy-850 dark:bg-navy-900 transition-all hover:shadow-md">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-navy-500 dark:text-navy-400">Monthly Revenue</span>
-            <div className="rounded-lg bg-coral-50 p-2 text-coral-500 dark:bg-coral-950/10 dark:text-coral-450">
-              <TrendingUp size={20} />
+            <span className="text-xs sm:text-sm font-medium text-navy-500 dark:text-navy-400">Monthly Revenue</span>
+            <div className="rounded-lg bg-coral-50 p-1.5 sm:p-2 text-coral-500 dark:bg-coral-950/10 dark:text-coral-450">
+              <TrendingUp size={16} className="sm:hidden" />
+              <TrendingUp size={20} className="hidden sm:block" />
             </div>
           </div>
-          <div className="mt-4">
-            <h3 className="text-2xl font-bold text-navy-900 dark:text-white">₹{monthlyRevenue?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h3>
-            <p className="mt-1 text-xs text-coral-500">Current calendar month</p>
+          <div className="mt-3 sm:mt-4">
+            <h3 className="text-lg sm:text-2xl font-bold text-navy-900 dark:text-white">₹{monthlyRevenue?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h3>
+            <p className="mt-1 text-[10px] sm:text-xs text-coral-500">Current calendar month</p>
           </div>
         </div>
 
         {/* Total Patients */}
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-navy-850 dark:bg-navy-900">
+        <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm dark:border-navy-850 dark:bg-navy-900 transition-all hover:shadow-md">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-navy-500 dark:text-navy-400">Total Patients</span>
-            <div className="rounded-lg bg-blue-50 p-2 text-blue-500 dark:bg-blue-950/20 dark:text-blue-450">
-              <Users size={20} />
+            <span className="text-xs sm:text-sm font-medium text-navy-500 dark:text-navy-400">Total Patients</span>
+            <div className="rounded-lg bg-blue-50 p-1.5 sm:p-2 text-blue-500 dark:bg-blue-950/20 dark:text-blue-450">
+              <Users size={16} className="sm:hidden" />
+              <Users size={20} className="hidden sm:block" />
             </div>
           </div>
-          <div className="mt-4">
-            <h3 className="text-2xl font-bold text-navy-900 dark:text-white">{totalPatients}</h3>
-            <p className="mt-1 text-xs text-blue-500">Registered UHIDs</p>
+          <div className="mt-3 sm:mt-4">
+            <h3 className="text-lg sm:text-2xl font-bold text-navy-900 dark:text-white">{totalPatients}</h3>
+            <p className="mt-1 text-[10px] sm:text-xs text-blue-500">Registered UHIDs</p>
           </div>
         </div>
 
         {/* Total Reports */}
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-navy-850 dark:bg-navy-900">
+        <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm dark:border-navy-850 dark:bg-navy-900 transition-all hover:shadow-md">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-navy-500 dark:text-navy-400">Approved Reports</span>
-            <div className="rounded-lg bg-purple-50 p-2 text-purple-500 dark:bg-purple-950/20 dark:text-purple-450">
-              <CheckCircle2 size={20} />
+            <span className="text-xs sm:text-sm font-medium text-navy-500 dark:text-navy-400">Approved Reports</span>
+            <div className="rounded-lg bg-purple-50 p-1.5 sm:p-2 text-purple-500 dark:bg-purple-950/20 dark:text-purple-450">
+              <CheckCircle2 size={16} className="sm:hidden" />
+              <CheckCircle2 size={20} className="hidden sm:block" />
             </div>
           </div>
-          <div className="mt-4">
-            <h3 className="text-2xl font-bold text-navy-900 dark:text-white">{approvedReports}</h3>
-            <p className="mt-1 text-xs text-purple-500">Verified and delivered</p>
+          <div className="mt-3 sm:mt-4">
+            <h3 className="text-lg sm:text-2xl font-bold text-navy-900 dark:text-white">{approvedReports}</h3>
+            <p className="mt-1 text-[10px] sm:text-xs text-purple-500">Verified and delivered</p>
           </div>
         </div>
       </div>
 
       {/* Reports Workflow Indicators */}
-      <div className="grid gap-6 md:grid-cols-3">
-        <div className="flex items-center gap-4 rounded-xl border border-slate-100 bg-white p-5 shadow-sm dark:border-navy-850 dark:bg-navy-900">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-50 text-amber-500 dark:bg-amber-950/15 dark:text-amber-450">
-            <Clock size={24} />
+      <div className="grid grid-cols-3 gap-3 sm:gap-6">
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-2 sm:gap-4 rounded-xl border border-slate-100 bg-white p-3 sm:p-5 shadow-sm dark:border-navy-850 dark:bg-navy-900 text-center sm:text-left">
+          <div className="flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-full bg-amber-50 text-amber-500 dark:bg-amber-950/15 dark:text-amber-450">
+            <Clock size={20} />
           </div>
           <div>
-            <p className="text-xs font-semibold text-navy-400 uppercase tracking-wider">Pending Entry</p>
-            <h4 className="text-2xl font-bold text-navy-850 dark:text-white">{pendingReports}</h4>
+            <p className="text-[9px] sm:text-xs font-semibold text-navy-400 uppercase tracking-wider">Pending Entry</p>
+            <h4 className="text-xl sm:text-2xl font-bold text-navy-850 dark:text-white">{pendingReports}</h4>
           </div>
         </div>
 
-        <div className="flex items-center gap-4 rounded-xl border border-slate-100 bg-white p-5 shadow-sm dark:border-navy-850 dark:bg-navy-900">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-blue-500 dark:bg-blue-950/15 dark:text-blue-450">
-            <Clock size={24} />
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-2 sm:gap-4 rounded-xl border border-slate-100 bg-white p-3 sm:p-5 shadow-sm dark:border-navy-850 dark:bg-navy-900 text-center sm:text-left">
+          <div className="flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-500 dark:bg-blue-950/15 dark:text-blue-450">
+            <Clock size={20} />
           </div>
           <div>
-            <p className="text-xs font-semibold text-navy-400 uppercase tracking-wider">Awaiting Approval</p>
-            <h4 className="text-2xl font-bold text-navy-850 dark:text-white">{waitingReports}</h4>
+            <p className="text-[9px] sm:text-xs font-semibold text-navy-400 uppercase tracking-wider">Awaiting Approval</p>
+            <h4 className="text-xl sm:text-2xl font-bold text-navy-850 dark:text-white">{waitingReports}</h4>
           </div>
         </div>
 
-        <div className="flex items-center gap-4 rounded-xl border border-slate-100 bg-white p-5 shadow-sm dark:border-navy-850 dark:bg-navy-900">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-500 dark:bg-emerald-950/15 dark:text-emerald-450">
-            <CheckCircle2 size={24} />
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-2 sm:gap-4 rounded-xl border border-slate-100 bg-white p-3 sm:p-5 shadow-sm dark:border-navy-850 dark:bg-navy-900 text-center sm:text-left">
+          <div className="flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-500 dark:bg-emerald-950/15 dark:text-emerald-450">
+            <CheckCircle2 size={20} />
           </div>
           <div>
-            <p className="text-xs font-semibold text-navy-400 uppercase tracking-wider">Finalized Reports</p>
-            <h4 className="text-2xl font-bold text-navy-850 dark:text-white">{approvedReports}</h4>
+            <p className="text-[9px] sm:text-xs font-semibold text-navy-400 uppercase tracking-wider">Finalized</p>
+            <h4 className="text-xl sm:text-2xl font-bold text-navy-850 dark:text-white">{approvedReports}</h4>
           </div>
         </div>
       </div>
 
       {/* Analytics Charts Grid */}
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
         {/* 7-Day Revenue Trend Area Chart */}
-        <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-navy-850 dark:bg-navy-900">
-          <h3 className="text-base font-bold text-navy-950 dark:text-white mb-6">Revenue Trend (Last 7 Days)</h3>
+        <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm dark:border-navy-850 dark:bg-navy-900">
+          <h3 className="text-sm sm:text-base font-bold text-navy-950 dark:text-white mb-4 sm:mb-6">Revenue Trend (Last 7 Days)</h3>
           
-          <div className="relative h-64 w-full">
-            <svg viewBox="0 0 600 240" className="h-full w-full overflow-visible">
+          {/* Horizontally scrollable chart wrapper on small screens */}
+          <div className="overflow-x-auto -mx-1 px-1">
+            <div className="relative h-56 sm:h-64" style={{ minWidth: '380px' }}>
+              <svg viewBox="0 0 600 240" className="h-full w-full overflow-visible" preserveAspectRatio="xMidYMid meet">
               <defs>
                 <linearGradient id="chart-grad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#f43f5e" stopOpacity="0.25" />
@@ -284,6 +300,7 @@ const Dashboard = () => {
                 </text>
               ))}
             </svg>
+            </div>
           </div>
         </div>
 

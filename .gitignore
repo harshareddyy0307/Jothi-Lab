@@ -41,3 +41,8 @@ desktop.ini
 # ── Vite & Build Cache ───────────────────────────────────────
 client/.vite/
 client/.cache/
+
+# ── Scratch & Agent Files ────────────────────────────────────
+scratch/
+*.pdf
+.agents/

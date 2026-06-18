@@ -48,7 +48,7 @@ const Login = () => {
             <Activity size={24} />
           </div>
           <h2 className="mt-6 text-3xl font-extrabold tracking-tight text-white">
-            Jyothi <span className="text-coral-500">Lab</span>
+            Mithra <span className="text-coral-500">Diagnostic Centre</span>
           </h2>
           <p className="mt-2 text-sm text-slate-400">
             Diagnostic Management Information Portal

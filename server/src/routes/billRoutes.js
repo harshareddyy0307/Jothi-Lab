@@ -10,6 +10,8 @@ router.use(authMiddleware);
 router.get('/', billController.getAll);
 router.get('/payments', billController.getPaymentsHistory);
 router.get('/claims', billController.getClaims);
+router.get('/dues', billController.getDuesSummary);
+router.get('/patient/:patient_id/dues', billController.getPatientDues);
 router.get('/number/:bill_number', billController.getByNumber);
 router.get('/:id', billController.getById);
 router.post('/', authorize(['Admin', 'Receptionist']), billController.create);

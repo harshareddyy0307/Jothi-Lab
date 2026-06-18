@@ -8,6 +8,7 @@ const router = express.Router();
 router.use(authMiddleware);
 
 router.get('/', doctorController.getAll);
+router.get('/referrals/monthly', doctorController.getMonthlyReferralsSummary);
 router.get('/:id', doctorController.getById);
 router.get('/:id/commissions', doctorController.getCommissions);
 router.post('/', authorize(['Admin', 'Receptionist']), doctorController.create);

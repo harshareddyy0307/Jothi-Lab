@@ -148,13 +148,13 @@ CREATE TABLE audit_logs (
 -- Seed Initial Admin User (password: admin123)
 -- bcrypt hash for 'admin123' is '$2a$10$1OnqZd8CVu.tUPMGVX.9.eKa40hu4cKgvcsOiH8ro7iwOcNe/.LqC'
 INSERT INTO users (name, phone, email, password, role, is_active)
-VALUES ('System Admin', '9876543210', 'admin@jyothilab.com', '$2a$10$1OnqZd8CVu.tUPMGVX.9.eKa40hu4cKgvcsOiH8ro7iwOcNe/.LqC', 'Admin', true);
+VALUES ('System Admin', '9876543210', 'admin@mithradiagnosticcentre.com', '$2a$10$1OnqZd8CVu.tUPMGVX.9.eKa40hu4cKgvcsOiH8ro7iwOcNe/.LqC', 'Admin', true);
 
 -- Seed Default Settings
 INSERT INTO settings (key, value) VALUES
-('receipt_header', '{"labName":"Jyothi Lab","tagline":"Precision Diagnostics, Care & Trust","address":"12-34 Main Road, Opp Metro, Hyderabad","phone":"+91 98765 43210","email":"info@jyothilab.com","gstin":"36AAAAA1111A1Z1"}'),
+('receipt_header', '{"labName":"Mithra Diagnostic Centre","tagline":"Precision Diagnostics, Care & Trust","address":"12-34 Main Road, Opp Metro, Hyderabad","phone":"+91 98765 43210","email":"info@mithradiagnosticcentre.com","gstin":"36AAAAA1111A1Z1"}'),
 ('report_settings', '{"footer":"This is an electronically verified report. Signature is uploaded by the Pathologist.","emailEnabled":true,"whatsappEnabled":true}'),
-('email_settings', '{"host":"smtp.mailtrap.io","port":2525,"user":"","pass":"","from":"no-reply@jyothilab.com"}'),
+('email_settings', '{"host":"smtp.mailtrap.io","port":2525,"user":"","pass":"","from":"no-reply@mithradiagnosticcentre.com"}'),
 ('whatsapp_settings', '{"apiUrl":"https://api.mockwhatsapp.com/v1/send","token":"mock-token-12345"}');
 
 -- Seed Sample Tests

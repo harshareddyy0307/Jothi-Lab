@@ -172,6 +172,47 @@ const doctorController = {
       console.error(err);
       return res.status(500).json({ error: 'Internal Server Error' });
     }
+  },
+
+  getMonthlyReferralsSummary: async (req, res) => {
+    try {
+      let queryText;
+      if (db.dialect === 'postgres') {
+        queryText = `
+          SELECT 
+            to_char(b.created_at, 'YYYY-MM') as month,
+            SUM(b.net_amount) as total_referred_amount,
+            SUM(b.net_amount * (d.commission_percentage / 100)) as total_commission
+          FROM bills b
+          JOIN doctors d ON b.referral_doctor_id = d.id
+          GROUP BY to_char(b.created_at, 'YYYY-MM')
+          ORDER BY month DESC
+        `;
+      } else {
+        queryText = `
+          SELECT 
+            strftime('%Y-%m', b.created_at) as month,
+            SUM(b.net_amount) as total_referred_amount,
+            SUM(b.net_amount * (d.commission_percentage / 100)) as total_commission
+          FROM bills b
+          JOIN doctors d ON b.referral_doctor_id = d.id
+          GROUP BY month
+          ORDER BY month DESC
+        `;
+      }
+      const rows = await db.query(queryText);
+
+      const formatted = rows.map(r => ({
+        month: r.month,
+        totalReferredAmount: parseFloat(r.total_referred_amount) || 0,
+        totalCommission: parseFloat(r.total_commission) || 0
+      }));
+
+      return res.json(formatted);
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
   }
 };
 

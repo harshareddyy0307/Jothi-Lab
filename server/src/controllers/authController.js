@@ -112,8 +112,15 @@ const authController = {
 
       otpStore.set(phone, { otp, expires });
 
+      // Fetch settings for dynamic lab name
+      const settingsRows = await db.query('SELECT * FROM settings');
+      const settings = {};
+      settingsRows.forEach((r) => { settings[r.key] = r.value; });
+      const receiptHeader = settings.receipt_header ? JSON.parse(settings.receipt_header) : {};
+      const labName = receiptHeader.labName || 'Mithra Diagnostic Centre';
+
       // Simulate sending OTP via notification helper
-      await notificationService.sendSMS(phone, `Your Jyothi Lab OTP for password reset is ${otp}. Valid for 10 minutes.`);
+      await notificationService.sendSMS(phone, `Your ${labName} OTP for password reset is ${otp}. Valid for 10 minutes.`);
       console.log(`[OTP] Generated OTP for ${phone}: ${otp}`);
 
       return res.json({ message: 'OTP sent to registered phone number.' });

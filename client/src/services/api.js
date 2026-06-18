@@ -13,6 +13,8 @@ const getBaseURL = () => {
     
     if ((isIP || hostname.endsWith('.local') || !hostname.includes('.')) && !isLocalHost) {
       url = `http://${hostname}:5000/api`;
+    } else if (!isLocalHost) {
+      url = `${window.location.origin}/api`;
     }
   }
   return url;

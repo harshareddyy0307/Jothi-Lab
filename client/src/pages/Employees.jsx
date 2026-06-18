@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { 
   Plus, Search, UserCheck, Shield, Phone, Mail, 
-  Edit3, UserMinus, X, AlertCircle 
+  Edit3, UserMinus, X, AlertCircle, Trash2
 } from 'lucide-react';
 
 const Employees = () => {
@@ -94,13 +94,24 @@ const Employees = () => {
     setFormOpen(true);
   };
 
-  const handleDeactivate = async (id) => {
-    if (!window.confirm('Deactivating will suspend this employee from logging in. Continue?')) return;
+  const handleToggleActive = async (id, currentActive) => {
+    const actionText = currentActive ? 'suspend' : 'activate';
+    if (!window.confirm(`Are you sure you want to ${actionText} this employee account?`)) return;
+    try {
+      await api.post(`/employees/${id}/toggle-active`);
+      fetchEmployees();
+    } catch (err) {
+      setError(err.response?.data?.error || `Failed to ${actionText} account.`);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to PERMANENTLY delete this employee account? This action cannot be undone.')) return;
     try {
       await api.delete(`/employees/${id}`);
       fetchEmployees();
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to deactivate account.');
+      setError(err.response?.data?.error || 'Failed to delete employee account.');
     }
   };
 
@@ -194,15 +205,25 @@ const Employees = () => {
                         <span>Edit</span>
                       </button>
                       
-                      {emp.is_active ? (
-                        <button 
-                          onClick={() => handleDeactivate(emp.id)}
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-rose-500 hover:bg-rose-50 dark:border-navy-800 dark:hover:bg-rose-950/20 transition-colors"
-                        >
-                          <UserMinus size={12} />
-                          <span>Suspend</span>
-                        </button>
-                      ) : null}
+                      <button 
+                        onClick={() => handleToggleActive(emp.id, emp.is_active)}
+                        className={`inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold transition-colors ${
+                          emp.is_active 
+                            ? 'text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20 hover:border-amber-250 dark:border-navy-800' 
+                            : 'text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 hover:border-emerald-250 dark:border-navy-800'
+                        }`}
+                      >
+                        {emp.is_active ? <UserMinus size={12} /> : <UserCheck size={12} />}
+                        <span>{emp.is_active ? 'Suspend' : 'Activate'}</span>
+                      </button>
+
+                      <button 
+                        onClick={() => handleDelete(emp.id)}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-rose-500 hover:bg-rose-50 dark:border-navy-800 dark:hover:bg-rose-950/20 transition-colors"
+                      >
+                        <Trash2 size={12} />
+                        <span>Delete</span>
+                      </button>
                     </td>
                   </tr>
                 ))

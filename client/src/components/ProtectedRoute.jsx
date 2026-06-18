@@ -11,7 +11,7 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
       <div className="flex h-screen items-center justify-center bg-slate-50 dark:bg-navy-950">
         <div className="flex flex-col items-center gap-4">
           <div className="h-12 w-12 animate-spin rounded-full border-4 border-coral-500 border-t-transparent"></div>
-          <p className="text-sm font-semibold text-navy-500 dark:text-navy-400">Loading Jyothi Lab Portal...</p>
+          <p className="text-sm font-semibold text-navy-500 dark:text-navy-400">Loading Mithra Diagnostic Centre Portal...</p>
         </div>
       </div>
     );

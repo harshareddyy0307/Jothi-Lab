@@ -84,6 +84,13 @@ export default function WhatsApp() {
   const [tplSaving, setTplSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [previewTemplate, setPreviewTemplate] = useState(null);
+  const [receiptHeader, setReceiptHeader] = useState({
+    labName: 'Mithra Diagnostic Centre',
+    tagline: 'Precision Diagnostics, Care & Trust',
+    address: 'Bellary Road, Kurnool',
+    phone: '9856628943',
+    email: 'info@mithradiagnosticcentre.com'
+  });
 
   // Bulk confirm modal
   const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
@@ -91,6 +98,15 @@ export default function WhatsApp() {
   const LOG_LIMIT = 20;
 
   // ── Fetchers ─────────────────────────────────────────────────────────────────
+  const fetchSettings = useCallback(async () => {
+    try {
+      const res = await api.get('/settings');
+      if (res.data && res.data.receipt_header) {
+        setReceiptHeader(res.data.receipt_header);
+      }
+    } catch { /* silent */ }
+  }, []);
+
   const fetchStats = useCallback(async () => {
     try {
       const res = await api.get('/whatsapp/stats');
@@ -126,7 +142,7 @@ export default function WhatsApp() {
     } catch { /* silent */ }
   }, []);
 
-  useEffect(() => { fetchStats(); fetchTemplates(); }, [fetchStats, fetchTemplates]);
+  useEffect(() => { fetchStats(); fetchTemplates(); fetchSettings(); }, [fetchStats, fetchTemplates, fetchSettings]);
   useEffect(() => { if (activeTab === 'send') fetchUnsentReports(); }, [activeTab, fetchUnsentReports]);
   useEffect(() => { if (activeTab === 'logs') fetchLogs(); }, [activeTab, fetchLogs]);
   useEffect(() => { if (activeTab === 'templates') fetchTemplates(); }, [activeTab, fetchTemplates]);
@@ -148,6 +164,12 @@ export default function WhatsApp() {
       const res = await api.post(`/whatsapp/send/${reportId}`, { template_id: selectedTemplate || null });
       setSendResults(prev => ({ ...prev, [reportId]: res.data }));
       fetchStats();
+      
+      if (res.data.success && res.data.phone) {
+        const text = res.data.messageBody + (res.data.pdfUrl ? `\n\nDownload Report: ${res.data.pdfUrl}` : '');
+        const waUrl = `https://api.whatsapp.com/send?phone=${res.data.phone}&text=${encodeURIComponent(text)}`;
+        window.open(waUrl, '_blank');
+      }
     } catch (err) {
       setSendResults(prev => ({ ...prev, [reportId]: { success: false, error: err.response?.data?.error || 'Send failed' } }));
     } finally { setSendingId(null); }
@@ -173,9 +195,15 @@ export default function WhatsApp() {
   const handleRetry = async (logId) => {
     setRetryingId(logId);
     try {
-      await api.post(`/whatsapp/retry/${logId}`);
+      const res = await api.post(`/whatsapp/retry/${logId}`);
       fetchLogs();
       fetchStats();
+      
+      if (res.data.success && res.data.phone) {
+        const text = res.data.messageBody + (res.data.pdfUrl ? `\n\nDownload Report: ${res.data.pdfUrl}` : '');
+        const waUrl = `https://api.whatsapp.com/send?phone=${res.data.phone}&text=${encodeURIComponent(text)}`;
+        window.open(waUrl, '_blank');
+      }
     } catch { /* silent */ } finally { setRetryingId(null); }
   };
 
@@ -231,8 +259,10 @@ export default function WhatsApp() {
         .replace(/\{\{test_name\}\}/g, 'Complete Blood Count')
         .replace(/\{\{bill_number\}\}/g, 'JLB-20260604-0001')
         .replace(/\{\{report_date\}\}/g, '04/06/2026')
-        .replace(/\{\{lab_name\}\}/g, 'Jyothi Diagnostic Centre')
-        .replace(/\{\{phone\}\}/g, '9856628943')
+        .replace(/\{\{lab_name\}\}/g, receiptHeader.labName || 'Mithra Diagnostic Centre')
+        .replace(/\{\{phone\}\}/g, receiptHeader.phone || '9856628943')
+        .replace(/\{\{address\}\}/g, receiptHeader.address || 'Bellary Road, Kurnool')
+        .replace(/\{\{email\}\}/g, receiptHeader.email || 'info@mithradiagnosticcentre.com')
     : '';
 
   return (

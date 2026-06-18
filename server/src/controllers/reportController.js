@@ -181,8 +181,15 @@ const reportController = {
         req.ip
       );
 
+      // Fetch settings for dynamic lab name
+      const settingsRows = await db.query('SELECT * FROM settings');
+      const settings = {};
+      settingsRows.forEach((r) => { settings[r.key] = r.value; });
+      const receiptHeader = settings.receipt_header ? JSON.parse(settings.receipt_header) : {};
+      const labName = receiptHeader.labName || 'Mithra Diagnostic Centre';
+
       // Simulate sending WhatsApp/Email alerts
-      const onlineReportLink = `https://jyothilab.com/reports/view/${id}`;
+      const onlineReportLink = `https://mithradiagnosticcentre.com/reports/view/${id}`;
       
       await notificationService.sendWhatsApp(
         patient.phone,
@@ -192,7 +199,7 @@ const reportController = {
       if (patient.email) {
         await notificationService.sendEmail(
           patient.email,
-          `Jyothi Lab - Test Report Approved (${test.name})`,
+          `${labName} - Test Report Approved (${test.name})`,
           `<p>Dear ${patient.name},</p><p>Your medical report for <b>${test.name}</b> has been verified and approved.</p><p><a href="${onlineReportLink}">Click here to view/download your report</a></p>`
         );
       }

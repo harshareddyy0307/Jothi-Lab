@@ -274,10 +274,17 @@ const billController = {
         req.ip
       );
 
+      // Fetch settings for dynamic lab name
+      const settingsRows = await db.query('SELECT * FROM settings');
+      const settings = {};
+      settingsRows.forEach((r) => { settings[r.key] = r.value; });
+      const receiptHeader = settings.receipt_header ? JSON.parse(settings.receipt_header) : {};
+      const labName = receiptHeader.labName || 'Mithra Diagnostic Centre';
+
       // Send SMS alert simulation
       await notificationService.sendSMS(
         patient.phone,
-        `Hello ${patient.name}, thank you for choosing Jyothi Lab. Bill ${billNumber} generated for ₹${netAmount.toFixed(2)}. Current status: ${paymentStatus}.`
+        `Hello ${patient.name}, thank you for choosing ${labName}. Bill ${billNumber} generated for ₹${netAmount.toFixed(2)}. Current status: ${paymentStatus}.`
       );
 
       return res.status(201).json(bill);
@@ -339,10 +346,17 @@ const billController = {
         req.ip
       );
 
+      // Fetch settings for dynamic lab name
+      const settingsRows = await db.query('SELECT * FROM settings');
+      const settings = {};
+      settingsRows.forEach((r) => { settings[r.key] = r.value; });
+      const receiptHeader = settings.receipt_header ? JSON.parse(settings.receipt_header) : {};
+      const labName = receiptHeader.labName || 'Mithra Diagnostic Centre';
+
       // Send SMS alert simulation
       await notificationService.sendSMS(
         patient.phone,
-        `Dear ${patient.name}, payment of ₹${amt.toFixed(2)} received for Jyothi Lab bill ${bill.bill_number}. Due remaining: ₹${newDueAmount.toFixed(2)}.`
+        `Dear ${patient.name}, payment of ₹${amt.toFixed(2)} received for ${labName} bill ${bill.bill_number}. Due remaining: ₹${newDueAmount.toFixed(2)}.`
       );
 
       return res.json({
@@ -573,6 +587,99 @@ const billController = {
         paid_amount: newPaidAmount,
         payment_status: paymentStatus
       });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+  },
+
+  getDuesSummary: async (req, res) => {
+    try {
+      const search = req.query.search || '';
+      const limit = parseInt(req.query.limit) || 10;
+      const page = parseInt(req.query.page) || 1;
+      const offset = (page - 1) * limit;
+
+      let countQuery = `
+        SELECT COUNT(DISTINCT b.patient_id) as count 
+        FROM bills b 
+        JOIN patients p ON b.patient_id = p.id
+        WHERE b.due_amount > 0
+      `;
+
+      let dataQuery = `
+        SELECT 
+          p.id as patient_id,
+          p.name as patient_name,
+          p.uhid as patient_uhid,
+          p.phone as patient_phone,
+          SUM(b.due_amount) as total_due,
+          COUNT(b.id) as due_bills_count
+        FROM bills b
+        JOIN patients p ON b.patient_id = p.id
+        WHERE b.due_amount > 0
+      `;
+
+      let conditions = [];
+      let params = [];
+
+      if (search) {
+        conditions.push(`(p.name LIKE $1 OR p.phone LIKE $2 OR p.uhid LIKE $3)`);
+        params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+      }
+
+      if (conditions.length > 0) {
+        countQuery += ' AND ' + conditions.join(' AND ');
+        dataQuery += ' AND ' + conditions.join(' AND ');
+      }
+
+      dataQuery += ` GROUP BY p.id, p.name, p.uhid, p.phone ORDER BY total_due DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+
+      const countRes = await db.get(countQuery, params);
+      const total = countRes ? countRes.count : 0;
+
+      const dataParams = [...params, limit, offset];
+      const dues = await db.query(dataQuery, dataParams);
+
+      // Also get the total outstanding dues across all matching/filtered patients
+      let totalOutstandingQuery = `
+        SELECT SUM(b.due_amount) as total_dues
+        FROM bills b
+        JOIN patients p ON b.patient_id = p.id
+        WHERE b.due_amount > 0
+      `;
+      if (conditions.length > 0) {
+        totalOutstandingQuery += ' AND ' + conditions.join(' AND ');
+      }
+      const totalOutstandingRes = await db.get(totalOutstandingQuery, params);
+      const totalOutstandingDues = parseFloat(totalOutstandingRes ? totalOutstandingRes.total_dues : 0) || 0;
+
+      return res.json({
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        totalOutstandingDues,
+        dues
+      });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+  },
+
+  getPatientDues: async (req, res) => {
+    try {
+      const { patient_id } = req.params;
+      const bills = await db.query(
+        `SELECT b.*, p.name as patient_name, p.uhid as patient_uhid, p.phone as patient_phone
+         FROM bills b
+         JOIN patients p ON b.patient_id = p.id
+         WHERE b.patient_id = $1 AND b.due_amount > 0
+         ORDER BY b.id ASC`,
+        [patient_id]
+      );
+      return res.json(bills);
     } catch (err) {
       console.error(err);
       return res.status(500).json({ error: 'Internal Server Error' });

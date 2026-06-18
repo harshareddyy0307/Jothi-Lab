@@ -208,19 +208,83 @@ const Patients = () => {
       </div>
 
       {/* Live search input */}
-      <div className="flex items-center gap-3 max-w-md rounded-lg border border-slate-200 bg-white px-3 py-2 dark:border-navy-850 dark:bg-navy-900">
-        <Search size={18} className="text-navy-400" />
+      <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 dark:border-navy-850 dark:bg-navy-900">
+        <Search size={16} className="shrink-0 text-navy-400" />
         <input
           type="text"
           placeholder="Search by UHID, Name or Phone..."
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           className="w-full bg-transparent text-sm text-navy-900 placeholder-navy-400 focus:outline-none dark:text-white"
+          style={{ fontSize: '16px' }}
         />
+        {search && (
+          <button onClick={() => { setSearch(''); setPage(1); }} className="text-navy-400 hover:text-navy-600 shrink-0">
+            <X size={15} />
+          </button>
+        )}
       </div>
 
-      {/* Patients Table */}
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-navy-850 dark:bg-navy-900">
+      {/* Mobile Card List — shown on small screens only */}
+      <div className="md:hidden space-y-2">
+        {loading ? (
+          <div className="flex justify-center py-10">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-coral-500 border-t-transparent"></div>
+          </div>
+        ) : patients.length > 0 ? (
+          patients.map((pat) => (
+            <div key={pat.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-navy-850 dark:bg-navy-900 animate-fade-in">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-navy-900 dark:text-white text-sm">{pat.name}</span>
+                    {pat.patient_type && pat.patient_type !== 'General' && (
+                      <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-bold ${
+                        pat.patient_type === 'Insurance' 
+                          ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/20 dark:text-blue-400' 
+                          : 'bg-purple-50 text-purple-600 dark:bg-purple-950/20 dark:text-purple-400'
+                      }`}>
+                        {pat.patient_type}
+                      </span>
+                    )}
+                  </div>
+                  <p className="font-mono text-[11px] font-bold text-coral-500 mt-0.5">{pat.uhid}</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-xs text-navy-500 dark:text-navy-400">{pat.age} {pat.age_unit} / {pat.gender}</p>
+                  <p className="text-xs font-medium text-navy-700 dark:text-navy-300 mt-0.5">{pat.phone}</p>
+                </div>
+              </div>
+              {pat.referral_doctor_name && (
+                <p className="text-[11px] text-navy-400 mt-2">Dr. {pat.referral_doctor_name}</p>
+              )}
+              <div className="flex gap-2 mt-3 pt-3 border-t border-slate-100 dark:border-navy-850">
+                <button
+                  onClick={() => startEdit(pat)}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold hover:bg-slate-50 dark:border-navy-800 dark:hover:bg-navy-850 transition-colors"
+                >
+                  <Edit3 size={12} />
+                  <span>Edit</span>
+                </button>
+                <button
+                  onClick={() => openHistoryDrawer(pat)}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-coral-50 px-3 py-2 text-xs font-medium text-coral-600 hover:bg-coral-100 dark:bg-coral-950/15 dark:text-coral-400 transition-colors"
+                >
+                  <Eye size={12} />
+                  <span>Medical History</span>
+                </button>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="rounded-xl border border-slate-200 bg-white p-10 text-center text-navy-400 dark:border-navy-850 dark:bg-navy-900">
+            No patients matching this criteria.
+          </div>
+        )}
+      </div>
+
+      {/* Desktop Table — hidden on mobile */}
+      <div className="hidden md:block overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-navy-850 dark:bg-navy-900">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -312,20 +376,47 @@ const Patients = () => {
         )}
       </div>
 
+      {/* Mobile Pagination */}
+      {totalPages > 1 && (
+        <div className="flex md:hidden items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 dark:border-navy-850 dark:bg-navy-900">
+          <span className="text-xs text-navy-500">Page {page} of {totalPages}</span>
+          <div className="flex items-center gap-2">
+            <button
+              disabled={page === 1}
+              onClick={() => setPage(page - 1)}
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-navy-600 disabled:opacity-40 dark:border-navy-800"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <button
+              disabled={page === totalPages}
+              onClick={() => setPage(page + 1)}
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-navy-600 disabled:opacity-40 dark:border-navy-800"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Drawer Overlay for Registration */}
       {registerOpen && (
         <div className="fixed inset-0 z-40 flex justify-end bg-black/55 backdrop-blur-sm">
-          <div className="h-full w-full max-w-md bg-white p-6 shadow-2xl overflow-y-auto dark:bg-navy-900 transition-all">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4 dark:border-navy-800">
-              <h2 className="text-lg font-bold text-navy-900 dark:text-white">
+          <div className="h-full w-full sm:max-w-md bg-white shadow-2xl overflow-y-auto dark:bg-navy-900 animate-slide-in-right">
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-white dark:border-navy-800 dark:bg-navy-900 px-4 sm:px-6 py-4">
+              <h2 className="text-base sm:text-lg font-bold text-navy-900 dark:text-white">
                 {editId ? 'Edit Patient Profile' : 'Register Patient'}
               </h2>
-              <button onClick={() => setRegisterOpen(false)} className="text-navy-400 hover:text-navy-600">
-                <X size={20} />
+              <button
+                onClick={() => setRegisterOpen(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-navy-400 hover:bg-slate-100 hover:text-navy-600 dark:hover:bg-navy-800 transition-colors"
+                aria-label="Close drawer"
+              >
+                <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleRegisterSubmit} className="mt-6 space-y-4">
+            <form onSubmit={handleRegisterSubmit} className="p-4 sm:p-6 space-y-4">
               <div>
                 <label className="text-xs font-semibold text-navy-500 uppercase tracking-wide block mb-1">Patient Name *</label>
                 <input
@@ -513,7 +604,7 @@ const Patients = () => {
               <button
                 type="submit"
                 disabled={docUploading}
-                className="w-full rounded-lg bg-coral-500 py-3 text-sm font-bold text-white shadow-lg hover:bg-coral-600 disabled:opacity-50"
+                className="w-full rounded-lg bg-coral-500 py-3 text-sm font-bold text-white shadow-lg hover:bg-coral-600 active:bg-coral-700 disabled:opacity-50 transition-colors"
               >
                 {editId ? 'Save Patient Changes' : 'Register Profile'}
               </button>
@@ -525,139 +616,147 @@ const Patients = () => {
       {/* Drawer Overlay for History */}
       {historyOpen && selectedPatient && (
         <div className="fixed inset-0 z-40 flex justify-end bg-black/55 backdrop-blur-sm">
-          <div className="h-full w-full max-w-lg bg-white p-6 shadow-2xl overflow-y-auto dark:bg-navy-900 transition-all">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4 dark:border-navy-800">
+          <div className="h-full w-full sm:max-w-lg bg-white shadow-2xl overflow-y-auto dark:bg-navy-900 animate-slide-in-right">
+            {/* Sticky header */}
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-white dark:border-navy-800 dark:bg-navy-900 px-4 sm:px-6 py-4">
               <div>
-                <h2 className="text-lg font-bold text-navy-900 dark:text-white">Medical File & History</h2>
+                <h2 className="text-base sm:text-lg font-bold text-navy-900 dark:text-white">Medical File &amp; History</h2>
                 <p className="text-xs text-navy-450 dark:text-navy-500 font-mono">{selectedPatient.uhid}</p>
               </div>
-              <button onClick={() => setHistoryOpen(false)} className="text-navy-400 hover:text-navy-600">
-                <X size={20} />
+              <button
+                onClick={() => setHistoryOpen(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-navy-400 hover:bg-slate-100 hover:text-navy-600 dark:hover:bg-navy-800 transition-colors"
+                aria-label="Close drawer"
+              >
+                <X size={18} />
               </button>
             </div>
 
-            {/* Patient profile details */}
-            <div className="mt-6 rounded-xl bg-slate-50 p-4 space-y-2 text-sm dark:bg-navy-950">
-              <p><strong className="text-navy-500 dark:text-navy-400">Full Name:</strong> {selectedPatient.name}</p>
-              <p><strong className="text-navy-500 dark:text-navy-400">Age / Gender:</strong> {selectedPatient.age} {selectedPatient.age_unit} / {selectedPatient.gender}</p>
-              <p><strong className="text-navy-500 dark:text-navy-400">Contact No:</strong> {selectedPatient.phone}</p>
-              {selectedPatient.email && <p><strong className="text-navy-500 dark:text-navy-400">Email:</strong> {selectedPatient.email}</p>}
-              {selectedPatient.address && <p><strong className="text-navy-500 dark:text-navy-400">Address:</strong> {selectedPatient.address}</p>}
-              <p><strong className="text-navy-500 dark:text-navy-400">Referral Doctor:</strong> {selectedPatient.referral_doctor_name || 'Self'}</p>
-              <p><strong className="text-navy-500 dark:text-navy-400">Patient Type:</strong> {selectedPatient.patient_type || 'General'}</p>
-              {selectedPatient.patient_type && selectedPatient.patient_type !== 'General' && (
-                <>
-                  {selectedPatient.patient_type === 'Corporate' && (
-                    <p><strong className="text-navy-500 dark:text-navy-400">Corporate Co:</strong> {selectedPatient.corporate_company}</p>
-                  )}
-                  <p><strong className="text-navy-500 dark:text-navy-400">Insurance Co:</strong> {selectedPatient.insurance_company}</p>
-                  <p><strong className="text-navy-500 dark:text-navy-400">Policy Number:</strong> {selectedPatient.policy_number}</p>
-                  <p><strong className="text-navy-500 dark:text-navy-400">Policy Holder:</strong> {selectedPatient.policy_holder_name}</p>
-                  <p><strong className="text-navy-500 dark:text-navy-400">Insurance ID:</strong> {selectedPatient.insurance_id}</p>
-                  <p><strong className="text-navy-500 dark:text-navy-400">Coverage Max:</strong> ₹{parseFloat(selectedPatient.coverage_amount || 0).toFixed(2)}</p>
-                  {selectedPatient.insurance_document_path && (
-                    <p>
-                      <strong className="text-navy-500 dark:text-navy-400">Document:</strong>{' '}
-                      <a 
-                        href={`${API_BASE_URL}${selectedPatient.insurance_document_path}`} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-coral-500 font-semibold hover:underline"
-                      >
-                        View Policy Card / ID
-                      </a>
-                    </p>
-                  )}
-                </>
-              )}
-            </div>
-
-            {/* History tabs */}
-            <div className="mt-8">
-              <h3 className="text-sm font-bold text-navy-900 uppercase tracking-wide dark:text-white mb-4">Historical Records</h3>
-              
-              {historyLoading ? (
-                <div className="flex h-32 items-center justify-center">
-                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-coral-500 border-t-transparent"></div>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {/* Invoices List */}
-                  <div>
-                    <h4 className="text-xs font-bold text-coral-500 uppercase tracking-wider mb-2">Generated Bills</h4>
-                    {patientHistory.bills.length > 0 ? (
-                      <div className="space-y-2">
-                        {patientHistory.bills.map((bill) => (
-                          <div key={bill.id} className="flex items-center justify-between rounded-lg border border-slate-100 p-3 dark:border-navy-800">
-                            <div>
-                              <p className="font-semibold text-sm text-navy-800 dark:text-white">{bill.bill_number}</p>
-                              <p className="text-xs text-navy-450 dark:text-navy-550">{new Date(bill.created_at).toLocaleDateString()}</p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-sm font-bold">₹{bill.net_amount}</p>
-                              <span className={`inline-block rounded px-2 py-0.5 text-[10px] font-bold ${
-                                bill.payment_status === 'Paid' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20' : 'bg-amber-50 text-amber-600 dark:bg-amber-950/20'
-                              }`}>{bill.payment_status}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-navy-400">No bills generated for this patient.</p>
+            {/* Drawer body */}
+            <div className="p-4 sm:p-6">
+              {/* Patient profile details */}
+              <div className="mt-2 rounded-xl bg-slate-50 p-4 space-y-2 text-sm dark:bg-navy-950">
+                <p><strong className="text-navy-500 dark:text-navy-400">Full Name:</strong> {selectedPatient.name}</p>
+                <p><strong className="text-navy-500 dark:text-navy-400">Age / Gender:</strong> {selectedPatient.age} {selectedPatient.age_unit} / {selectedPatient.gender}</p>
+                <p><strong className="text-navy-500 dark:text-navy-400">Contact No:</strong> {selectedPatient.phone}</p>
+                {selectedPatient.email && <p><strong className="text-navy-500 dark:text-navy-400">Email:</strong> {selectedPatient.email}</p>}
+                {selectedPatient.address && <p><strong className="text-navy-500 dark:text-navy-400">Address:</strong> {selectedPatient.address}</p>}
+                <p><strong className="text-navy-500 dark:text-navy-400">Referral Doctor:</strong> {selectedPatient.referral_doctor_name || 'Self'}</p>
+                <p><strong className="text-navy-500 dark:text-navy-400">Patient Type:</strong> {selectedPatient.patient_type || 'General'}</p>
+                {selectedPatient.patient_type && selectedPatient.patient_type !== 'General' && (
+                  <>
+                    {selectedPatient.patient_type === 'Corporate' && (
+                      <p><strong className="text-navy-500 dark:text-navy-400">Corporate Co:</strong> {selectedPatient.corporate_company}</p>
                     )}
-                  </div>
-
-                  {/* Reports List */}
-                  <div>
-                    <h4 className="text-xs font-bold text-coral-500 uppercase tracking-wider mb-2">Diagnostic Reports</h4>
-                    {patientHistory.reports.length > 0 ? (
-                      <div className="space-y-2">
-                        {patientHistory.reports.map((rep) => (
-                          <div key={rep.id} className="flex items-center justify-between rounded-lg border border-slate-100 p-3 dark:border-navy-800">
-                            <div>
-                              <p className="font-semibold text-sm text-navy-800 dark:text-white">{rep.test_name}</p>
-                              <p className="text-xs text-navy-450 dark:text-navy-550">{rep.department}</p>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              {rep.status === 'Approved' ? (
-                                <div className="flex gap-2">
-                                  <a
-                                    href={`${API_BASE_URL}/api/reports/${rep.id}/pdf?token=${localStorage.getItem('jyothi_token')}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex h-8 px-2.5 items-center justify-center gap-1 rounded bg-coral-50 text-coral-500 hover:bg-coral-100 dark:bg-coral-950/15 text-xs font-semibold"
-                                    title="Print Report with Letterhead"
-                                  >
-                                    <Printer size={13} />
-                                    <span className="hidden sm:inline">With Head</span>
-                                  </a>
-                                  <a
-                                    href={`${API_BASE_URL}/api/reports/${rep.id}/pdf?token=${localStorage.getItem('jyothi_token')}&letterhead=false`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex h-8 px-2.5 items-center justify-center gap-1 rounded bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-navy-800 dark:text-navy-300 dark:hover:bg-navy-750 text-xs font-semibold"
-                                    title="Print Report without Letterhead"
-                                  >
-                                    <Printer size={13} />
-                                    <span className="hidden sm:inline">Without Head</span>
-                                  </a>
-                                </div>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 text-xs text-amber-500 font-medium">
-                                  <Clock size={12} />
-                                  <span>{rep.status}</span>
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-navy-400">No test reports requested yet.</p>
+                    <p><strong className="text-navy-500 dark:text-navy-400">Insurance Co:</strong> {selectedPatient.insurance_company}</p>
+                    <p><strong className="text-navy-500 dark:text-navy-400">Policy Number:</strong> {selectedPatient.policy_number}</p>
+                    <p><strong className="text-navy-500 dark:text-navy-400">Policy Holder:</strong> {selectedPatient.policy_holder_name}</p>
+                    <p><strong className="text-navy-500 dark:text-navy-400">Insurance ID:</strong> {selectedPatient.insurance_id}</p>
+                    <p><strong className="text-navy-500 dark:text-navy-400">Coverage Max:</strong> ₹{parseFloat(selectedPatient.coverage_amount || 0).toFixed(2)}</p>
+                    {selectedPatient.insurance_document_path && (
+                      <p>
+                        <strong className="text-navy-500 dark:text-navy-400">Document:</strong>{' '}
+                        <a
+                          href={`${API_BASE_URL}${selectedPatient.insurance_document_path}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-coral-500 font-semibold hover:underline"
+                        >
+                          View Policy Card / ID
+                        </a>
+                      </p>
                     )}
+                  </>
+                )}
+              </div>
+
+              {/* History tabs */}
+              <div className="mt-6">
+                <h3 className="text-sm font-bold text-navy-900 uppercase tracking-wide dark:text-white mb-4">Historical Records</h3>
+
+                {historyLoading ? (
+                  <div className="flex h-32 items-center justify-center">
+                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-coral-500 border-t-transparent"></div>
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div className="space-y-6">
+                    {/* Invoices List */}
+                    <div>
+                      <h4 className="text-xs font-bold text-coral-500 uppercase tracking-wider mb-2">Generated Bills</h4>
+                      {patientHistory.bills.length > 0 ? (
+                        <div className="space-y-2">
+                          {patientHistory.bills.map((bill) => (
+                            <div key={bill.id} className="flex items-center justify-between rounded-lg border border-slate-100 p-3 dark:border-navy-800">
+                              <div>
+                                <p className="font-semibold text-sm text-navy-800 dark:text-white">{bill.bill_number}</p>
+                                <p className="text-xs text-navy-450 dark:text-navy-550">{new Date(bill.created_at).toLocaleDateString()}</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-sm font-bold">₹{bill.net_amount}</p>
+                                <span className={`inline-block rounded px-2 py-0.5 text-[10px] font-bold ${
+                                  bill.payment_status === 'Paid' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20' : 'bg-amber-50 text-amber-600 dark:bg-amber-950/20'
+                                }`}>{bill.payment_status}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-navy-400">No bills generated for this patient.</p>
+                      )}
+                    </div>
+
+                    {/* Reports List */}
+                    <div>
+                      <h4 className="text-xs font-bold text-coral-500 uppercase tracking-wider mb-2">Diagnostic Reports</h4>
+                      {patientHistory.reports.length > 0 ? (
+                        <div className="space-y-2">
+                          {patientHistory.reports.map((rep) => (
+                            <div key={rep.id} className="flex items-center justify-between rounded-lg border border-slate-100 p-3 dark:border-navy-800">
+                              <div>
+                                <p className="font-semibold text-sm text-navy-800 dark:text-white">{rep.test_name}</p>
+                                <p className="text-xs text-navy-450 dark:text-navy-550">{rep.department}</p>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                {rep.status === 'Approved' ? (
+                                  <div className="flex gap-2">
+                                    <a
+                                      href={`${API_BASE_URL}/api/reports/${rep.id}/pdf?token=${localStorage.getItem('jyothi_token')}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="flex h-8 px-2.5 items-center justify-center gap-1 rounded bg-coral-50 text-coral-500 hover:bg-coral-100 dark:bg-coral-950/15 text-xs font-semibold"
+                                      title="Print Report with Letterhead"
+                                    >
+                                      <Printer size={13} />
+                                      <span className="hidden sm:inline">With Head</span>
+                                    </a>
+                                    <a
+                                      href={`${API_BASE_URL}/api/reports/${rep.id}/pdf?token=${localStorage.getItem('jyothi_token')}&letterhead=false`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="flex h-8 px-2.5 items-center justify-center gap-1 rounded bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-navy-800 dark:text-navy-300 dark:hover:bg-navy-750 text-xs font-semibold"
+                                      title="Print Report without Letterhead"
+                                    >
+                                      <Printer size={13} />
+                                      <span className="hidden sm:inline">Without Head</span>
+                                    </a>
+                                  </div>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 text-xs text-amber-500 font-medium">
+                                    <Clock size={12} />
+                                    <span>{rep.status}</span>
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-navy-400">No test reports requested yet.</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

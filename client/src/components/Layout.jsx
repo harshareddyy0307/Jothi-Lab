@@ -13,6 +13,7 @@ import {
 
 const Layout = () => {
   const { user, hasRole } = useAuth();
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   
   // Barcode Lookup Modal States
   const [modalOpen, setModalOpen] = useState(false);
@@ -45,6 +46,15 @@ const Layout = () => {
     setModalOpen(true);
 
     try {
+      // Check if code is a report URL (from report's QR code)
+      let isReportUrl = false;
+      let reportIdFromUrl = null;
+      const urlMatch = code.match(/\/REPORTS\/(?:VIEW\/)?(\d+)/i);
+      if (urlMatch) {
+        isReportUrl = true;
+        reportIdFromUrl = urlMatch[1];
+      }
+
       if (/^JL-/.test(code) && !/^JLB-/.test(code) && !/^JLR-/.test(code) && !/^JLS-/.test(code)) {
         // Patient barcode: JL-YYYYMMDD-XXXX
         const patRes = await api.get(`/patients/uhid/${encodeURIComponent(code)}`);
@@ -61,10 +71,16 @@ const Layout = () => {
         setPaymentAmount(billRes.data.bill.due_amount || '');
         setPaymentMethod('Cash');
         setTransactionId('');
-      } else if (/^JLR-/.test(code) || /^JLS-/.test(code)) {
-        // Report/Sample barcode: JLR-ID or JLS-ID
-        const parts = code.split('-');
-        const id = parts[1];
+      } else if (/^JLR-/.test(code) || /^JLS-/.test(code) || isReportUrl) {
+        // Report/Sample barcode: JLR-ID or JLS-ID or QR Code URL
+        let id;
+        if (isReportUrl) {
+          id = reportIdFromUrl;
+        } else {
+          const parts = code.split('-');
+          id = parts[1];
+        }
+        
         if (!id || isNaN(id)) {
           throw new Error('Invalid barcode format. Expected JLR-<number> or JLS-<number>.');
         }
@@ -158,13 +174,21 @@ const Layout = () => {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-slate-50 dark:bg-navy-950">
+      {/* Sidebar mobile overlay backdrop */}
+      {mobileSidebarOpen && (
+        <div 
+          className="fixed inset-0 z-20 bg-slate-900/55 backdrop-blur-xs transition-opacity sm:hidden"
+          onClick={() => setMobileSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <Sidebar />
+      <Sidebar mobileOpen={mobileSidebarOpen} setMobileOpen={setMobileSidebarOpen} />
 
       {/* Main Container */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Navbar with Barcode Search prop */}
-        <Navbar onSearch={handleBarcodeScan} />
+        <Navbar onSearch={handleBarcodeScan} onMenuClick={() => setMobileSidebarOpen(true)} />
 
         {/* Content Viewport */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 text-navy-800 dark:text-navy-100">
@@ -174,15 +198,20 @@ const Layout = () => {
 
       {/* Global Barcode Search Lookup Modal Overlay */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex sm:items-center sm:justify-center bg-black/60 sm:p-4 backdrop-blur-sm">
           <div 
             className="fixed inset-0" 
             onClick={() => setModalOpen(false)}
           />
           
-          <div className="relative z-10 flex h-full max-h-[90vh] w-full max-w-3xl flex-col rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-navy-850 dark:bg-navy-900 overflow-hidden">
+          {/* On mobile: bottom sheet. On desktop: centered modal */}
+          <div className="relative z-10 flex flex-col w-full sm:max-w-3xl rounded-t-2xl sm:rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-navy-850 dark:bg-navy-900 overflow-hidden mt-auto sm:mt-0 max-h-[92vh] sm:max-h-[90vh]">
+            {/* Drag handle for mobile */}
+            <div className="flex justify-center pt-3 pb-1 sm:hidden">
+              <div className="w-10 h-1 rounded-full bg-slate-300 dark:bg-navy-700"></div>
+            </div>
             {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4 dark:border-navy-850">
+            <div className="flex items-center justify-between border-b border-slate-100 px-4 sm:px-6 py-3 sm:py-4 dark:border-navy-850">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-coral-500/10 text-coral-500">
                   <Activity size={20} className="animate-pulse" />
@@ -344,9 +373,9 @@ const Layout = () => {
 
                   {/* 2. Bill Invoice Receipt Preview */}
                   {lookupType === 'bill' && (
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 sm:gap-6">
                       {/* Left: Receipt details */}
-                      <div className="md:col-span-7 space-y-4 border-r border-slate-100 pr-6 dark:border-navy-850">
+                      <div className="md:col-span-7 space-y-4 md:border-r md:border-slate-100 md:pr-6 dark:md:border-navy-850">
                         <div className="flex justify-between items-start gap-4">
                           <div>
                             <h4 className="text-sm font-bold text-navy-400 uppercase">Bill invoice</h4>
